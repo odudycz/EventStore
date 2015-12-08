@@ -215,6 +215,8 @@ namespace EventStore.Core.Services.PersistentSubscription
                     OutstandingMessage message;
                     if (_streamBuffer.TryDequeue(out message))
                     {
+                        if (message.ResolvedEvent.OriginalEventNumber > _lastKnownMessage)
+                            _lastKnownMessage = message.ResolvedEvent.OriginalEventNumber;
                         MarkBeginProcessing(message);
                         yield return message.ResolvedEvent;
                     }
