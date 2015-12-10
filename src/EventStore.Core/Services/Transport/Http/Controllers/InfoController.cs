@@ -14,7 +14,7 @@ using EventStore.Core.Messages;
 
 namespace EventStore.Core.Services.Transport.Http.Controllers
 {
-    public class InfoController : IHttpController, IHandle<SystemMessage.StateChangeMessage>
+    public class InfoController : IHttpController, IHandle<SystemMessage.StateChangeMessage>, IHandle<ClientMessage.ScavengeDatabaseStatusChange>
     {
         private static readonly ILogger Log = LogManager.GetLoggerFor<InfoController>();
         private static readonly ICodec[] SupportedCodecs = { Codec.Json, Codec.Xml, Codec.ApplicationXml, Codec.Text };
@@ -22,6 +22,7 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
         private readonly IOptions _options;
         private readonly ProjectionType _projectionType;
         private VNodeState _currentState;
+        private string _scavengeStatusMessage;
         public InfoController(IOptions options, ProjectionType projectionType)
         {
             _options = options;
@@ -33,6 +34,7 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
             Ensure.NotNull(service, "service");
             service.RegisterAction(new ControllerAction("/info", HttpMethod.Get, Codec.NoCodecs, SupportedCodecs), OnGetInfo);
             service.RegisterAction(new ControllerAction("/info/options", HttpMethod.Get, Codec.NoCodecs, SupportedCodecs), OnGetOptions);
+            service.RegisterAction(new ControllerAction("/info/scavenge-status", HttpMethod.Get, Codec.NoCodecs, SupportedCodecs), OnGetScavengeStatus);
         }
 
 
@@ -48,6 +50,24 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
                 ESVersion = VersionInfo.Version,
                 State = _currentState.ToString().ToLower(),
                 ProjectionsMode = _projectionType
+            }),
+            HttpStatusCode.OK,
+            "OK",
+            entity.ResponseCodec.ContentType,
+            null,
+            e => Log.ErrorException(e, "Error while writing HTTP response (info)"));
+        }
+
+        public void Handle(ClientMessage.ScavengeDatabaseStatusChange message)
+        {
+            _scavengeStatusMessage = message.StatusMessage;
+        }
+
+        private void OnGetScavengeStatus(HttpEntityManager entity, UriTemplateMatch match)
+        {
+            entity.ReplyTextContent(Codec.Json.To(new
+            {
+                StatusMessage = _scavengeStatusMessage
             }),
             HttpStatusCode.OK,
             "OK",

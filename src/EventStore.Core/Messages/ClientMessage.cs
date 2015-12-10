@@ -1378,6 +1378,22 @@ namespace EventStore.Core.Messages
             }
         }
 
+        public class ScavengeDatabaseStatusChange: Message
+        {
+            private static readonly int TypeId = Interlocked.Increment(ref NextMsgId);
+            public override int MsgTypeId { get { return TypeId; } }
+
+            public readonly Guid CorrelationId;
+            public readonly string StatusMessage;
+
+            public ScavengeDatabaseStatusChange(Guid correlationId,
+                                                string statusMessage)
+            {
+                CorrelationId = correlationId;
+                StatusMessage = statusMessage;
+            }
+        }
+
         public class ScavengeDatabaseCompleted: Message
         {
             private static readonly int TypeId = Interlocked.Increment(ref NextMsgId);
