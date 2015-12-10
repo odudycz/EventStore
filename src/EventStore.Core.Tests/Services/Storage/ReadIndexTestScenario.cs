@@ -24,6 +24,7 @@ namespace EventStore.Core.Tests.Services.Storage
 
         protected TFChunkDb Db;
         protected TFChunkWriter Writer;
+        protected FakePublisher Publisher;
         protected ICheckpoint WriterCheckpoint;
         protected ICheckpoint ChaserCheckpoint;
 
@@ -42,6 +43,7 @@ namespace EventStore.Core.Tests.Services.Storage
         public override void TestFixtureSetUp()
         {
             base.TestFixtureSetUp();
+            Publisher = new FakePublisher();
 
             WriterCheckpoint = new InMemoryCheckpoint(0);
             ChaserCheckpoint = new InMemoryCheckpoint(0);
@@ -89,7 +91,7 @@ namespace EventStore.Core.Tests.Services.Storage
             {
                 if (_completeLastChunkOnScavenge)
                     Db.Manager.GetChunk(Db.Manager.ChunksCount - 1).Complete();
-                _scavenger = new TFChunkScavenger(Db, TableIndex, hasher, ReadIndex);
+                _scavenger = new TFChunkScavenger(Db, Publisher, TableIndex, hasher, ReadIndex);
                 _scavenger.Scavenge(alwaysKeepScavenged: true, mergeChunks: _mergeChunks);
             }
         }
@@ -109,8 +111,8 @@ namespace EventStore.Core.Tests.Services.Storage
 
         protected abstract void WriteTestScenario();
 
-        protected EventRecord WriteSingleEvent(string eventStreamId, 
-                                               int eventNumber, 
+        protected EventRecord WriteSingleEvent(string eventStreamId,
+                                               int eventNumber,
                                                string data,
                                                DateTime? timestamp = null,
                                                Guid eventId = default(Guid),
@@ -268,10 +270,10 @@ namespace EventStore.Core.Tests.Services.Storage
             return prepare;
         }
 
-        protected PrepareLogRecord WritePrepare(string streamId, 
-                                                int expectedVersion, 
-                                                Guid eventId = default(Guid), 
-                                                string eventType = null, 
+        protected PrepareLogRecord WritePrepare(string streamId,
+                                                int expectedVersion,
+                                                Guid eventId = default(Guid),
+                                                string eventType = null,
                                                 string data = null)
         {
             long pos;

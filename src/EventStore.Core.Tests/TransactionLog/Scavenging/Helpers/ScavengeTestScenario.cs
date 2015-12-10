@@ -23,6 +23,7 @@ namespace EventStore.Core.Tests.TransactionLog.Scavenging.Helpers
         protected TFChunkDb Db { get { return _dbResult.Db; } }
 
         private readonly int _metastreamMaxCount;
+        private FakePublisher _publisher;
         private DbResult _dbResult;
         private LogRecord[][] _keptRecords;
         private bool _checked;
@@ -35,6 +36,7 @@ namespace EventStore.Core.Tests.TransactionLog.Scavenging.Helpers
         public override void TestFixtureSetUp()
         {
             base.TestFixtureSetUp();
+            _publisher = new FakePublisher();
 
             var dbConfig = new TFChunkDbConfig(PathName,
                                                new VersionedPatternFileNamingStrategy(PathName, "chunk-"),
@@ -66,7 +68,7 @@ namespace EventStore.Core.Tests.TransactionLog.Scavenging.Helpers
             ReadIndex.Init(_dbResult.Db.Config.WriterCheckpoint.Read());
 
             //var scavengeReadIndex = new ScavengeReadIndex(_dbResult.Streams, _metastreamMaxCount);
-            var scavenger = new TFChunkScavenger(_dbResult.Db, tableIndex, hasher, ReadIndex);
+            var scavenger = new TFChunkScavenger(_dbResult.Db, _publisher, tableIndex, hasher, ReadIndex);
             scavenger.Scavenge(alwaysKeepScavenged: true, mergeChunks: false);
         }
 

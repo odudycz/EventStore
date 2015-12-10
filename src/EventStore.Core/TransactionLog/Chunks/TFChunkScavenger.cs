@@ -5,10 +5,12 @@ using System.IO;
 using System.Linq;
 using EventStore.Common.Log;
 using EventStore.Common.Utils;
+using EventStore.Core.Bus;
 using EventStore.Core.Data;
 using EventStore.Core.Exceptions;
 using EventStore.Core.Index;
 using EventStore.Core.Index.Hashes;
+using EventStore.Core.Messages;
 using EventStore.Core.Services;
 using EventStore.Core.Services.Storage.ReaderIndex;
 using EventStore.Core.TransactionLog.Chunks.TFChunk;
@@ -21,19 +23,22 @@ namespace EventStore.Core.TransactionLog.Chunks
         private static readonly ILogger Log = LogManager.GetLoggerFor<TFChunkScavenger>();
 
         private readonly TFChunkDb _db;
+        private readonly IPublisher _publisher;
         private readonly ITableIndex _tableIndex;
         private readonly IHasher _hasher;
         private readonly IReadIndex _readIndex;
         private readonly long _maxChunkDataSize;
 
-        public TFChunkScavenger(TFChunkDb db, ITableIndex tableIndex, IHasher hasher, IReadIndex readIndex, long? maxChunkDataSize = null)
+        public TFChunkScavenger(TFChunkDb db, IPublisher publisher, ITableIndex tableIndex, IHasher hasher, IReadIndex readIndex, long? maxChunkDataSize = null)
         {
             Ensure.NotNull(db, "db");
+            Ensure.NotNull(publisher, "publisher");
             Ensure.NotNull(tableIndex, "tableIndex");
             Ensure.NotNull(hasher, "hasher");
             Ensure.NotNull(readIndex, "readIndex");
- 
+
             _db = db;
+            _publisher = publisher;
             _tableIndex = tableIndex;
             _hasher = hasher;
             _readIndex = readIndex;
@@ -46,7 +51,7 @@ namespace EventStore.Core.TransactionLog.Chunks
             var sw = Stopwatch.StartNew();
             long spaceSaved = 0;
 
-            Log.Trace("SCAVENGING: started scavenging of DB. Chunks count at start: {0}. Options: alwaysKeepScavenged = {1}, mergeChunks = {2}", 
+            Log.Trace("SCAVENGING: started scavenging of DB. Chunks count at start: {0}. Options: alwaysKeepScavenged = {1}, mergeChunks = {2}",
                       _db.Manager.ChunksCount, alwaysKeepScavenged, mergeChunks);
 
             for (long scavengePos = 0; scavengePos < _db.Config.ChaserCheckpoint.Read(); )
@@ -112,8 +117,10 @@ namespace EventStore.Core.TransactionLog.Chunks
                             mergedSomething = true;
                         }
                     }
-                    Log.Trace("SCAVENGING: merge pass #{0} completed in {1}. {2} merged.",
+                    string message = string.Format("merge pass #{0} completed in {1}. {2} merged.",
                               passNum, sw.Elapsed, mergedSomething ? "Some chunks" : "Nothing");
+                    Log.Trace("SCAVENGING: {0}", message);
+                    _publisher.Publish(new ClientMessage.ScavengeDatabaseStatusChange(Guid.Empty, message));
                 } while (mergedSomething);
             }
             Log.Trace("SCAVENGING: total time taken: {0}, total space saved: {1}.", totalSw.Elapsed, spaceSaved);

@@ -203,7 +203,7 @@ namespace EventStore.Core
             _mainBus.Subscribe<SystemMessage.SystemStart>(storageChaser);
             _mainBus.Subscribe<SystemMessage.BecomeShuttingDown>(storageChaser);
 
-            var storageScavenger = new StorageScavenger(db, tableIndex, hash, readIndex,
+            var storageScavenger = new StorageScavenger(db, (IPublisher)_mainBus, tableIndex, hash, readIndex,
                                                         Application.IsDefined(Application.AlwaysKeepScavenged),
                                                         mergeChunks: !vNodeSettings.DisableScavengeMerging);
 
@@ -293,6 +293,7 @@ namespace EventStore.Core
             });
 
             _mainBus.Subscribe<SystemMessage.StateChangeMessage>(infoController);
+            _mainBus.Subscribe<ClientMessage.ScavengeDatabaseStatusChange>(infoController);
 
             var adminController = new AdminController(_mainQueue);
             var pingController = new PingController();

@@ -17,6 +17,7 @@ namespace EventStore.Core.Services.Storage
         private static readonly ILogger Log = LogManager.GetLoggerFor<StorageScavenger>();
 
         private readonly TFChunkDb _db;
+        private readonly IPublisher _publisher;
         private readonly ITableIndex _tableIndex;
         private readonly IHasher _hasher;
         private readonly IReadIndex _readIndex;
@@ -25,15 +26,17 @@ namespace EventStore.Core.Services.Storage
 
         private int _isScavengingRunning;
 
-        public StorageScavenger(TFChunkDb db, ITableIndex tableIndex, IHasher hasher, 
+        public StorageScavenger(TFChunkDb db, IPublisher publisher, ITableIndex tableIndex, IHasher hasher,
                                 IReadIndex readIndex, bool alwaysKeepScavenged, bool mergeChunks)
         {
             Ensure.NotNull(db, "db");
+            Ensure.NotNull(publisher, "publisher");
             Ensure.NotNull(tableIndex, "tableIndex");
             Ensure.NotNull(hasher, "hasher");
             Ensure.NotNull(readIndex, "readIndex");
 
             _db = db;
+            _publisher = publisher;
             _tableIndex = tableIndex;
             _hasher = hasher;
             _readIndex = readIndex;
@@ -47,12 +50,12 @@ namespace EventStore.Core.Services.Storage
             {
                 ThreadPool.QueueUserWorkItem(_ => Scavenge(message));
             }
-            else 
+            else
             {
                 message.Envelope.ReplyWith(
-                    new ClientMessage.ScavengeDatabaseCompleted(message.CorrelationId, 
+                    new ClientMessage.ScavengeDatabaseCompleted(message.CorrelationId,
                                                                 ClientMessage.ScavengeDatabase.ScavengeResult.InProgress,
-                                                                "Scavenge already in progress.", 
+                                                                "Scavenge already in progress.",
                                                                 TimeSpan.FromMilliseconds(0),
                                                                 0)
                     );
@@ -74,7 +77,7 @@ namespace EventStore.Core.Services.Storage
                 }
                 else
                 {
-                    var scavenger = new TFChunkScavenger(_db, _tableIndex, _hasher, _readIndex);
+                    var scavenger = new TFChunkScavenger(_db, _publisher, _tableIndex, _hasher, _readIndex);
                     spaceSaved = scavenger.Scavenge(_alwaysKeepScavenged, _mergeChunks);
                     result = ClientMessage.ScavengeDatabase.ScavengeResult.Success;
                 }
