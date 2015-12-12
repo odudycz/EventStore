@@ -117,13 +117,15 @@ namespace EventStore.Core.TransactionLog.Chunks
                             mergedSomething = true;
                         }
                     }
-                    string message = string.Format("merge pass #{0} completed in {1}. {2} merged.",
+                    string statusUpdateMessage = string.Format("merge pass #{0} completed in {1}. {2} merged.",
                               passNum, sw.Elapsed, mergedSomething ? "Some chunks" : "Nothing");
-                    Log.Trace("SCAVENGING: {0}", message);
-                    _publisher.Publish(new ClientMessage.ScavengeDatabaseStatusChange(Guid.Empty, message));
+                    Log.Trace("SCAVENGING: {0}", statusUpdateMessage);
+                    _publisher.Publish(new ClientMessage.ScavengeDatabaseStatusChange(Guid.Empty, statusUpdateMessage, false));
                 } while (mergedSomething);
             }
             Log.Trace("SCAVENGING: total time taken: {0}, total space saved: {1}.", totalSw.Elapsed, spaceSaved);
+            _publisher.Publish(new ClientMessage.ScavengeDatabaseStatusChange(Guid.Empty,
+                string.Format("Completed. Total time taken: {0}, total space saved: {1}.", totalSw.Elapsed, spaceSaved), true));
             return spaceSaved;
         }
 

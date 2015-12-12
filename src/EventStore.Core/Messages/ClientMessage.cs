@@ -1385,12 +1385,15 @@ namespace EventStore.Core.Messages
 
             public readonly Guid CorrelationId;
             public readonly string StatusMessage;
+            public readonly bool Complete;
 
             public ScavengeDatabaseStatusChange(Guid correlationId,
-                                                string statusMessage)
+                                                string statusMessage,
+                                                bool complete)
             {
                 CorrelationId = correlationId;
                 StatusMessage = statusMessage;
+                Complete = complete;
             }
         }
 

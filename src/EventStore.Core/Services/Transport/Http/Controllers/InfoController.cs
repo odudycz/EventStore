@@ -23,6 +23,7 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
         private readonly ProjectionType _projectionType;
         private VNodeState _currentState;
         private string _scavengeStatusMessage;
+        private bool _scavengeComplete;
         public InfoController(IOptions options, ProjectionType projectionType)
         {
             _options = options;
@@ -61,13 +62,15 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
         public void Handle(ClientMessage.ScavengeDatabaseStatusChange message)
         {
             _scavengeStatusMessage = message.StatusMessage;
+            _scavengeComplete = message.Complete;
         }
 
         private void OnGetScavengeStatus(HttpEntityManager entity, UriTemplateMatch match)
         {
             entity.ReplyTextContent(Codec.Json.To(new
             {
-                StatusMessage = _scavengeStatusMessage
+                StatusMessage = _scavengeStatusMessage,
+                Complete = _scavengeComplete
             }),
             HttpStatusCode.OK,
             "OK",
