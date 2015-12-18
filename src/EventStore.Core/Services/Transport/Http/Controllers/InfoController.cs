@@ -26,7 +26,7 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
         private readonly IOptions _options;
         private readonly ProjectionType _projectionType;
         private VNodeState _currentState;
-        private List<string> _scavengeStatusMessages = new List<string>();
+        private List<ScavengeStatus> _scavengeStatusMessages = new List<ScavengeStatus>();
         private bool _scavengeComplete;
 
         public InfoController(IOptions options, ProjectionType projectionType)
@@ -69,13 +69,18 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
             if(_scavengeComplete)
             {
                 _scavengeStatusMessages.Clear();
+                _scavengeComplete = false;
             }
         }
 
         public void Handle(ClientMessage.ScavengeChunksCompleted message)
         {
             _scavengeComplete = false;
-            _scavengeStatusMessages.Add(message.ToString());
+            _scavengeStatusMessages.Add(new ScavengeStatus
+            {
+                    Operation = String.Format("Scavenge Chunks #{0} - #{1}", message.ChunkStartNumber, message.ChunkEndNumber),
+                    Time = message.TimeTaken.ToString()
+            });
         }
 
         public void Handle(ClientMessage.ScavengeDatabaseCompleted message)
@@ -85,16 +90,28 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
                 return;
             }
 
-            _scavengeComplete = true;
             if(message.Result == ClientMessage.ScavengeDatabase.ScavengeResult.Failed)
             {
-                _scavengeStatusMessages.Add(String.Format("Failed. Error: {0}.", message.Error));
+                _scavengeStatusMessages.Add(new ScavengeStatus
+                {
+                    Operation = String.Format("Failed. Error: {0}", message.Error)
+                });
             }
             else
             {
-                _scavengeStatusMessages.Add(String.Format("Completed. TotalTime: {0}, Total Space Saved: {1}",
-                                                        message.TotalTime, message.TotalSpaceSaved));
+                _scavengeStatusMessages.Add(new ScavengeStatus
+                {
+                    Operation = String.Format("Completed. Total Space Saved: {0}", message.TotalSpaceSaved),
+                    Time = message.TotalTime.ToString()
+                });
             }
+            _scavengeComplete = true;
+        }
+
+        public class ScavengeStatus
+        {
+            public string Operation { get; set; }
+            public string Time { get; set; }
         }
 
         private void OnGetScavengeStatus(HttpEntityManager entity, UriTemplateMatch match)
@@ -109,11 +126,6 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
             entity.ResponseCodec.ContentType,
             null,
             e => Log.ErrorException(e, "Error while writing HTTP response (info)"));
-            if(_scavengeComplete)
-            {
-                _scavengeComplete = false;
-                _scavengeStatusMessages.Clear();
-            }
         }
 
         private void OnGetOptions(HttpEntityManager entity, UriTemplateMatch match)
