@@ -1378,22 +1378,29 @@ namespace EventStore.Core.Messages
             }
         }
 
-        public class ScavengeDatabaseStatusChange: Message
+        public class ScavengeChunksCompleted: Message
         {
             private static readonly int TypeId = Interlocked.Increment(ref NextMsgId);
             public override int MsgTypeId { get { return TypeId; } }
 
             public readonly Guid CorrelationId;
-            public readonly string StatusMessage;
-            public readonly bool Complete;
+            public readonly int ChunkStartNumber;
+            public readonly int ChunkEndNumber;
+            public readonly TimeSpan TimeTaken;
 
-            public ScavengeDatabaseStatusChange(Guid correlationId,
-                                                string statusMessage,
-                                                bool complete)
+            public ScavengeChunksCompleted(Guid correlationId,
+                                           int chunkStartNumber,
+                                           int chunkEndNumber,
+                                           TimeSpan timeTaken)
             {
                 CorrelationId = correlationId;
-                StatusMessage = statusMessage;
-                Complete = complete;
+                ChunkStartNumber = chunkStartNumber;
+                ChunkEndNumber = chunkEndNumber;
+                TimeTaken = timeTaken;
+            }
+            public override string ToString()
+            {
+                return String.Format("Scavenging of chunks #{0} - #{1} completed in {2}", ChunkStartNumber, ChunkEndNumber, TimeTaken);
             }
         }
 

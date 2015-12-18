@@ -117,15 +117,11 @@ namespace EventStore.Core.TransactionLog.Chunks
                             mergedSomething = true;
                         }
                     }
-                    string statusUpdateMessage = string.Format("merge pass #{0} completed in {1}. {2} merged.",
-                              passNum, sw.Elapsed, mergedSomething ? "Some chunks" : "Nothing");
-                    Log.Trace("SCAVENGING: {0}", statusUpdateMessage);
-                    _publisher.Publish(new ClientMessage.ScavengeDatabaseStatusChange(Guid.Empty, statusUpdateMessage, false));
+                    Log.Trace("SCAVENGING: {0}", string.Format("merge pass #{0} completed in {1}. {2} merged.",
+                              passNum, sw.Elapsed, mergedSomething ? "Some chunks" : "Nothing"));
                 } while (mergedSomething);
             }
             Log.Trace("SCAVENGING: total time taken: {0}, total space saved: {1}.", totalSw.Elapsed, spaceSaved);
-            _publisher.Publish(new ClientMessage.ScavengeDatabaseStatusChange(Guid.Empty,
-                string.Format("Completed. Total time taken: {0}, total space saved: {1}.", totalSw.Elapsed, spaceSaved), true));
             return spaceSaved;
         }
 
@@ -197,6 +193,7 @@ namespace EventStore.Core.TransactionLog.Chunks
                 var oldSize = oldChunks.Sum(x => (long)x.PhysicalDataSize + x.ChunkFooter.MapSize + ChunkHeader.Size + ChunkFooter.Size);
                 var newSize = (long)newChunk.PhysicalDataSize + PosMap.FullSize * positionMapping.Count + ChunkHeader.Size + ChunkFooter.Size;
 
+                _publisher.Publish(new ClientMessage.ScavengeChunksCompleted(Guid.Empty, chunkStartNumber, chunkEndNumber, sw.Elapsed));
                 if (oldSize <= newSize && !alwaysKeepScavenged)
                 {
                     Log.Trace("Scavenging of chunks:\n{0}\n"

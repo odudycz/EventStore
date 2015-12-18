@@ -14,7 +14,10 @@ using EventStore.Core.Messages;
 
 namespace EventStore.Core.Services.Transport.Http.Controllers
 {
-    public class InfoController : IHttpController, IHandle<SystemMessage.StateChangeMessage>, IHandle<ClientMessage.ScavengeDatabaseStatusChange>
+    public class InfoController : IHttpController,
+                                  IHandle<SystemMessage.StateChangeMessage>,
+                                  IHandle<ClientMessage.ScavengeDatabaseCompleted>,
+                                  IHandle<ClientMessage.ScavengeChunksCompleted>
     {
         private static readonly ILogger Log = LogManager.GetLoggerFor<InfoController>();
         private static readonly ICodec[] SupportedCodecs = { Codec.Json, Codec.Xml, Codec.ApplicationXml, Codec.Text };
@@ -59,10 +62,29 @@ namespace EventStore.Core.Services.Transport.Http.Controllers
             e => Log.ErrorException(e, "Error while writing HTTP response (info)"));
         }
 
-        public void Handle(ClientMessage.ScavengeDatabaseStatusChange message)
+        public void Handle(ClientMessage.ScavengeChunksCompleted message)
         {
-            _scavengeStatusMessage = message.StatusMessage;
-            _scavengeComplete = message.Complete;
+            _scavengeComplete = false;
+            _scavengeStatusMessage = message.ToString();
+        }
+
+        public void Handle(ClientMessage.ScavengeDatabaseCompleted message)
+        {
+            if(message.Result == ClientMessage.ScavengeDatabase.ScavengeResult.InProgress)
+            {
+                return;
+            }
+
+            _scavengeComplete = true;
+            if(message.Result == ClientMessage.ScavengeDatabase.ScavengeResult.Failed)
+            {
+                _scavengeStatusMessage = String.Format("Failed. Error: {0}.", message.Error);
+            }
+            else
+            {
+                _scavengeStatusMessage = String.Format("Completed. TotalTime: {0}, Total Space Saved: {1}",
+                                                        message.TotalTime, message.TotalSpaceSaved);
+            }
         }
 
         private void OnGetScavengeStatus(HttpEntityManager entity, UriTemplateMatch match)

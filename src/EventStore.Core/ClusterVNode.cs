@@ -293,7 +293,8 @@ namespace EventStore.Core
             });
 
             _mainBus.Subscribe<SystemMessage.StateChangeMessage>(infoController);
-            _mainBus.Subscribe<ClientMessage.ScavengeDatabaseStatusChange>(infoController);
+            _mainBus.Subscribe<ClientMessage.ScavengeChunksCompleted>(infoController);
+            _mainBus.Subscribe<ClientMessage.ScavengeDatabaseCompleted>(infoController);
 
             var adminController = new AdminController(_mainQueue);
             var pingController = new PingController();

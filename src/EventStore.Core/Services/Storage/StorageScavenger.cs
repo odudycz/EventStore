@@ -52,13 +52,13 @@ namespace EventStore.Core.Services.Storage
             }
             else
             {
-                message.Envelope.ReplyWith(
-                    new ClientMessage.ScavengeDatabaseCompleted(message.CorrelationId,
-                                                                ClientMessage.ScavengeDatabase.ScavengeResult.InProgress,
-                                                                "Scavenge already in progress.",
-                                                                TimeSpan.FromMilliseconds(0),
-                                                                0)
-                    );
+                var scavengeInProgressMessage = new ClientMessage.ScavengeDatabaseCompleted(message.CorrelationId,
+                                                            ClientMessage.ScavengeDatabase.ScavengeResult.InProgress,
+                                                            "Scavenge already in progress.",
+                                                            TimeSpan.FromMilliseconds(0),
+                                                            0);
+                _publisher.Publish(scavengeInProgressMessage);
+                message.Envelope.ReplyWith(scavengeInProgressMessage);
             }
         }
 
@@ -91,8 +91,9 @@ namespace EventStore.Core.Services.Storage
 
             Interlocked.Exchange(ref _isScavengingRunning, 0);
 
-            message.Envelope.ReplyWith(
-                new ClientMessage.ScavengeDatabaseCompleted(message.CorrelationId, result, error, sw.Elapsed, spaceSaved));
+            var scavengeCompleteMessage = new ClientMessage.ScavengeDatabaseCompleted(message.CorrelationId, result, error, sw.Elapsed, spaceSaved);
+            _publisher.Publish(scavengeCompleteMessage);
+            message.Envelope.ReplyWith(scavengeCompleteMessage);
         }
     }
 }
