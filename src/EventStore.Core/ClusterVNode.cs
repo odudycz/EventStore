@@ -293,6 +293,7 @@ namespace EventStore.Core
             });
 
             _mainBus.Subscribe<SystemMessage.StateChangeMessage>(infoController);
+            _mainBus.Subscribe<ClientMessage.ScavengeDatabase>(infoController);
             _mainBus.Subscribe<ClientMessage.ScavengeChunksCompleted>(infoController);
             _mainBus.Subscribe<ClientMessage.ScavengeDatabaseCompleted>(infoController);
 
