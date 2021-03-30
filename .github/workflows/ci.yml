@@ -3,6 +3,9 @@ name: Build
 on:
   pull_request:
   push:
+    paths-ignore:
+    - 'docs/**'
+    - 'samples/**'
     branches:
     - master
     tags:
