@@ -10,7 +10,7 @@ const auth = core.getInput('github-token');
 const octokit = new Octokit({
   auth
 });
-const owner = 'hayley-jean';
+const owner = 'oskardudycz';
 const repo = 'EventStore';
 
 const validLabels = ['beta', 'stable'];
