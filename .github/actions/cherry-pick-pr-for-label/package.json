@@ -1,7 +1,7 @@
 {
-  "name": "open-pr-for-label",
+  "name": "cherry-pick-pr-for-label",
   "version": "1.0.0",
-  "description": "Opens a PR based on the labelled PR to the relevant branch",
+  "description": "Chery picks a PR based on the labelled PR to the relevant branch",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

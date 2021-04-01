@@ -1,4 +1,4 @@
-name: 'Open PR for label'
+name: 'Cherry Pick PR for label'
 description: 'Opens a new PR based off a labelled one'
 inputs:
   github-token:
