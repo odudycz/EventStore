@@ -45,18 +45,25 @@ async function getLastCommit(branch) {
 }
 
 async function createNewBranch(branchName, targetSha) {
-    const branchRef = `refs/heads/${branchName}`;
+  const branchRef = `refs/heads/${branchName}`;
 
+  try{
     const response = await octokit.git.createRef({
       owner,
       repo,
       ref: branchRef,
       sha: targetSha
-    })
+    });
     if (response.status != 201) {
-      throw `Failed to create new branch: ${JSON.stringify(response)}`;
+      console.log("Error Response status" + response.status);
     }
-    return branchRef;
+    return { status: "CREATED", branchRef };
+  } catch(err){
+    if(err.toString() === "HttpError: Reference already exists"){
+      return { status: "ALREADY_EXISTS", branchRef };;
+    }
+    throw err;
+  }
 }
 
 async function getCommitShasInPr(pullNumber) {
@@ -84,6 +91,18 @@ async function cherryPick(commitShas, branchName) {
     return newHeadSha;
 }
 
+async function openPullRequestExists(newBranch, targetBranchName) {
+  const response = await octokit.pulls.list({
+    owner,
+    repo,
+    state: "open",
+    head: newBranch,
+    base: targetBranchName
+  });
+  console.log("PRs: " + JSON.stringify(response.data))
+  return response.data.length > 0;
+}
+
 async function createPullRequest(title, head, base, body) {
     const result = await octokit.pulls.create({
       owner,
@@ -105,25 +124,65 @@ async function commentOnIssueForPr(issueNumber, body) {
   });
 }
 
+const CHERRY_PICK_LABEL = "cherry-pick";
+
 async function run() {
   try {
     const payload = github.context.payload;
-    console.log("payload")
-    console.log(JSON.stringify(payload, undefined, 2));
 
     // // const payloadFile = fs.readFileSync( 'C:\\Scratch\\github_issue_context.json');
     // // console.log(payloadFile.toString());
     // // const payload = JSON.parse(payloadFile.toString()).event;
 
-    const issue = payload.issue;
-    const label = payload.label.name;
+    const pullRequest = payload.pull_request;
 
-    if (!validLabels.includes(label)) {
-      throw `Invalid label applied: '${label}'`;
+    const targetBranches = pullRequest.labels
+      .filter(label => label.name.startsWith(CHERRY_PICK_LABEL))
+      .map(label => label.name.split(":")[1])
+      .filter(label => !!label);
+    
+    for (const targetBranch of targetBranches) {
+      try { 
+        console.log(`Getting latest commit for branch ${targetBranch}`);
+        const targetSha = await getLastCommit(targetBranch);
+
+        const newBranchName = `${pullRequest.number}-${pullRequest.head.ref}-${targetBranch}`;
+        console.log(`Creating a branch ${newBranchName} with sha ${targetSha}`);
+        const newBranch = await createNewBranch(newBranchName, targetSha);
+    
+        if(newBranch.status === "CREATED") {
+          console.log(`Getting commits for PR ${pullRequest.number}`)
+          const commitShas = await getCommitShasInPr(pullRequest.number);
+  
+          console.log(`Cherry picking commits '${commitShas}' on '${newBranchName}'`);
+          await cherryPick(commitShas, newBranchName);
+        } else {
+          console.log(`Branch ${newBranchName} is already created`)
+        }
+
+        const newTitle = `[${targetBranch}] ${pullRequest.title}`;
+
+        console.log(`Opening a PR against ${targetBranch}, on ${newBranch.branchRef} and title '${newTitle}'`);
+
+        const pullRequestAlreadyExists = await openPullRequestExists(newBranch, targetBranch);
+        if(pullRequestAlreadyExists) {
+          console.log('Pull request is already opened');
+        } else {
+          const prBody = `Cherry picked from https://${payload.repository.owner.name}/${payload.repository.name}/pull/${pullRequest.number}`;
+          await createPullRequest(newTitle, newBranch.branchRef, targetBranch, prBody);
+          console.log('Pull request has been opened');
+        }
+      } catch (ex) {
+        console.log(`Failed to cherry-pick commits due to error '${ex}'`);
+        console.log('Updating tracking issue with cherry-pick error');
+      }
     }
-    if (!issue.labels.map(x => x.name).includes(trackingLabel)) {
-      throw `Issue does not have a tracking label`;
-    }
+    // if (!validLabels.includes(label)) {
+    //   throw `Invalid label applied: '${label}'`;
+    // }
+    // if (!issue.labels.map(x => x.name).includes(trackingLabel)) {
+    //   throw `Issue does not have a tracking label`;
+    // }
 
     // const pullRequest= await getPullRequestOnIssue(issue.body);
 
