@@ -108,21 +108,22 @@ async function commentOnIssueForPr(issueNumber, body) {
 async function run() {
   try {
     const payload = github.context.payload;
+    console.log("payload")
     console.log(JSON.stringify(payload, undefined, 2));
 
     // // const payloadFile = fs.readFileSync( 'C:\\Scratch\\github_issue_context.json');
     // // console.log(payloadFile.toString());
     // // const payload = JSON.parse(payloadFile.toString()).event;
 
-    // const issue = payload.issue;
-    // const label = payload.label.name;
+    const issue = payload.issue;
+    const label = payload.label.name;
 
-    // if (!validLabels.includes(label)) {
-    //   throw `Invalid label applied: '${label}'`;
-    // }
-    // if (!issue.labels.map(x => x.name).includes(trackingLabel)) {
-    //   throw `Issue does not have a tracking label`;
-    // }
+    if (!validLabels.includes(label)) {
+      throw `Invalid label applied: '${label}'`;
+    }
+    if (!issue.labels.map(x => x.name).includes(trackingLabel)) {
+      throw `Issue does not have a tracking label`;
+    }
 
     // const pullRequest= await getPullRequestOnIssue(issue.body);
 
