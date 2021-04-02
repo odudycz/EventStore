@@ -20,5 +20,5 @@ jobs:
           persist-credentials: false
       - name: Cherry Pick PR for label
         uses: ./.github/actions/cherry-pick-pr-for-label
-        with:
-          github-token: ${{ secrets.GH_PAT }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
