@@ -3,7 +3,7 @@ on:
   pull_request:
     types: [closed]
 jobs:
-  cherry-pick-pr:
+  openPr:
     name: Cherry Pick PR for label
     runs-on: ubuntu-latest
     steps:
@@ -12,18 +12,12 @@ jobs:
           GITHUB_CONTEXT: ${{ toJson(github) }}
         run: echo "$GITHUB_CONTEXT"
       - uses: actions/checkout@v2
-      - name: Checkout GitHub actions
-        run: |
-          wget https://github.com/oskardudycz/github-actions/archive/refs/heads/main.tar.gz -O - |  tar -xz -C ./
-      - name: list content
-        run: |
-          ls
-      - name: Move GitHub actions folder
-        run: |
-          mv github-actions-main/.github /home/runner/work/EventStore/EventStore/.github/
-      - name: list content
-        run: |
-          ls -la /home/runner/work/EventStore/EventStore/.github/
+      - name: checkout GitHub actions
+        uses: actions/checkout@v2
+        with:
+          clean: false
+          repository: oskardudycz/github-actions
+          persist-credentials: false
       - name: Cherry Pick PR for label
         uses: ./.github/actions/cherry-pick-pr-for-label
         with:
