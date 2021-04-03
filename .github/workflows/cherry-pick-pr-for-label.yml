@@ -12,13 +12,12 @@ jobs:
           GITHUB_CONTEXT: ${{ toJson(github) }}
         run: echo "$GITHUB_CONTEXT"
       - uses: actions/checkout@v2
-      - name: checkout GitHub actions
+      - name: Checkout GitHub Actions
         uses: actions/checkout@v2
         with:
-          clean: false
           repository: oskardudycz/github-actions
-          persist-credentials: false
+          token: ${{ secrets.GH_PAT }}
       - name: Cherry Pick PR for label
         uses: ./.github/actions/cherry-pick-pr-for-label
-        env:
+        with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
