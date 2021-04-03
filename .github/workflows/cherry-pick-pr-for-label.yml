@@ -15,8 +15,8 @@ jobs:
       - name: Checkout GitHub Actions
         uses: actions/checkout@v2
         with:
+          clean: false
           repository: oskardudycz/github-actions
-          token: ${{ secrets.GH_PAT }}
       - name: Cherry Pick PR for label
         uses: ./.github/actions/cherry-pick-pr-for-label
         with:
