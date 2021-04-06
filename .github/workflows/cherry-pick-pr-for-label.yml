@@ -4,6 +4,7 @@ on:
     types: [closed]
 jobs:
   openPr:
+    # if: github.event.pull_request.merged == 'true'
     name: Cherry Pick PR for label
     runs-on: ubuntu-latest
     steps:
@@ -20,4 +21,4 @@ jobs:
       - name: Cherry Pick PR for label
         uses: ./.github/actions/cherry-pick-pr-for-label
         with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
